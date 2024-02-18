@@ -4,15 +4,9 @@ import java.util.*;
 public class Beep {
 
     //Change these
-    private static final double multiplier = 0.90;
+    private static final double multiplier = 1.5;
     private static final int partNumber = 1;
-
-
-
-
-
-
-
+    private static double length = 0;
 
 
     public static void main(String[] args) throws IOException {
@@ -35,7 +29,7 @@ public class Beep {
         for (String line = bufferedReader.readLine(); line != null; line = bufferedReader.readLine()) {
             String[] values = line.split(", ");
             if (values.length == 6) {
-                if (values[2].equalsIgnoreCase("Note_on_c") && values[0].equalsIgnoreCase(String.valueOf(partNumber))) {
+                if ((values[2].equalsIgnoreCase("Note_on_c") || values[2].equalsIgnoreCase("Note_off_c"))&& values[0].equalsIgnoreCase(String.valueOf(partNumber))) {
                     int newTime = Integer.parseInt(values[1]);
                     int tone = Integer.parseInt(values[4]);
                     int velocity = Integer.parseInt(values[5]);
@@ -126,10 +120,11 @@ public class Beep {
                 }
                 double finalTime = multiplier *  time;
                 if (time > 0) {
-                    if (finalTime > 10000.0) {
-                        finalTime = 10000.0;
+                    if (finalTime > 20000.0) {
+                        finalTime = 20000.0;
                     }
                     strings.add(String.valueOf(finalTime));
+                    length += finalTime;
                     strings.add(values[0]);
                 }
             }
@@ -146,23 +141,60 @@ public class Beep {
         BufferedWriter writer = new BufferedWriter(new FileWriter(BeepFile));
         writer.write("#!/bin/bash");
         writer.write("\n\n");
+        writer.write("#Length: ");
+        writer.write(String.valueOf(Math.round((length / 10)/100.0)));
+        writer.write("s | ");
+        writer.write(String.valueOf(Math.round(length / 1000)/60));
+        writer.write(":");
+        writer.write(String.valueOf(Math.round(((Math.round(((length / 1000)/60)*100)/100.0) - Math.floor((length / 1000)/60))*60)));
+        writer.write("min");
+        writer.write("\n");
+        writer.write("#Part-Nr: ");
+        writer.write(String.valueOf(partNumber));
+        writer.write("\n");
+        writer.write("#Speed-Multiplier: ");
+        writer.write(String.valueOf(multiplier));
+        writer.write("\n\n");
         writer.write("beep    -f ");
+        double time = 0;
+        String timeString;
         if (strings.size() > 1) {
             for (int i = 0; i < strings.size() - 2; i += 2) {
                 writer.write(strings.get(i));
-                writer.write(" -l ");
-                writer.write(strings.get(i + 1));
-                for (int j = 0; j < 20 - (strings.get(i).length() + strings.get(i + 1).length()); j++) {
+                for (int j = 0; j < 6 - strings.get(i).length(); j++) {
+                    writer.write(" ");
+                }
+                writer.write("-l ");
+                writer.write(String.valueOf(Math.round(Double.parseDouble(strings.get(i + 1))*10.0)/10.0));
+                timeString = String.valueOf(Math.round((time / 10) / 100.0));
+                time += Double.parseDouble(strings.get(i +1));
+                for (int j = 0; j < 10 - (String.valueOf(Math.round(Double.parseDouble(strings.get(i + 1))*10.0)/10.0).length()); j++) {
+                    writer.write(" ");
+                }
+                writer.write("`#Timestamp: ");
+                writer.write(timeString);
+                writer.write("s `");
+                for (int k = 0; k < 10 - timeString.length(); k++) {
                     writer.write(" ");
                 }
                 writer.write("\\\n");
                 writer.write("     -n -f ");
             }
             writer.write(strings.get(strings.size() - 2));
-            writer.write(" -l ");
-            writer.write(strings.getLast());
+            for (int j = 0; j < 6 - strings.get(strings.size() - 2).length(); j++) {
+                writer.write(" ");
+            }
+            writer.write("-l ");
+            writer.write(String.valueOf(Math.round(Double.parseDouble(strings.getLast())*10.0)/10.0));
+            timeString = String.valueOf(Math.round((time / 10) / 100.0));
 
-            for (int j = 0; j < 20 - (strings.get(strings.size() - 2).length() + strings.getLast().length()); j++) {
+            for (int j = 0; j < 10 - (String.valueOf(Math.round(Double.parseDouble(strings.getLast())*10.0)/10.0).length()); j++) {
+                writer.write(" ");
+            }
+            writer.write("`#Timestamp: ");
+            writer.write(timeString);
+            writer.write("s `");
+            for (int k = 0; k < 10 - timeString.length(); k++) {
                 writer.write(" ");
             }
         }
